@@ -1,0 +1,36 @@
+### Testar o Registo
+POST http://localhost:3001/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Edson",
+  "email": "edson@email.com",
+  "password": "123456"
+}
+
+###
+
+### Testar o Login
+POST http://localhost:3001/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "edson@email.com",
+  "password": "123456"
+}
+
+### Listar todos os Cursos
+GET http://localhost:3001/api/courses
+
+###
+
+### Criar um Novo Curso
+POST http://localhost:3001/api/courses
+Content-Type: application/json
+
+{
+  "title": "React Básico",
+  "description": "Aprenda React do zero",
+  "category": "Programação",
+  "image": ""
+}

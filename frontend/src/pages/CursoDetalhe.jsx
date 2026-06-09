@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import api from "../services/api"; // ← IMPORTA O api.js
 
 export default function CursoDetalhe() {
   const { id } = useParams();
@@ -15,8 +16,8 @@ export default function CursoDetalhe() {
   useEffect(() => {
     async function fetchCourse() {
       try {
-        const res = await fetch(`http://localhost:3001/api/courses/${id}`);
-        const data = await res.json();
+        const res = await api.get(`/courses/${id}`); // ← USA api.js
+        const data = res.data;
         console.log("Curso recebido:", data);
 
         if (data.error || !data.id) {
@@ -44,16 +45,8 @@ export default function CursoDetalhe() {
     setMessage("");
 
     try {
-      const res = await fetch("http://localhost:3001/api/enrollments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ courseId: parseInt(id) }),
-      });
-
-      const data = await res.json();
+      const res = await api.post("/enrollments", { courseId: parseInt(id) }); // ← USA api.js
+      const data = res.data;
       console.log("Resposta matrícula:", data);
 
       if (data.error) {
@@ -142,7 +135,6 @@ export default function CursoDetalhe() {
             </div>
           )}
 
-          {/* BOTÃO MATRICULAR - SEMPRE APARECE */}
           <button
             onClick={handleEnroll}
             disabled={enrolling}

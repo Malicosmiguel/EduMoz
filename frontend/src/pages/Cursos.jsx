@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import api from "../services/api"; // ← IMPORTA O api.js
 
 export default function Cursos() {
   const [courses, setCourses] = useState([]);
@@ -9,8 +10,8 @@ export default function Cursos() {
   useEffect(() => {
     async function fetchCourses() {
       try {
-        const res = await fetch("http://localhost:3001/api/courses");
-        const data = await res.json();
+        const res = await api.get("/courses"); // ← USA api.js (VITE_API_URL)
+        const data = res.data;
         console.log("Dados recebidos:", data);
         
         if (Array.isArray(data)) {

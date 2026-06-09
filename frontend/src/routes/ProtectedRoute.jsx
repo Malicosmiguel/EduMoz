@@ -1,18 +1,25 @@
 import { Navigate } from "react-router-dom";
 
-// Protege rotas normais (só precisa estar logado)
 export function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/login" replace />;
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
 }
 
-// Protege rotas de admin
 export function AdminRoute({ children }) {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const token = localStorage.getItem("token");
-
-  if (!token) return <Navigate to="/login" replace />;
-  if (user.role !== "admin") return <Navigate to="/" replace />;
-
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const isAdmin = user?.role === "admin";
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  
   return children;
 }

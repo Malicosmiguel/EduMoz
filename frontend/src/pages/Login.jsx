@@ -10,23 +10,22 @@ export default function Login() {
   const navigate = useNavigate();
 
   async function handleLogin(e) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-    try {
-      const res = await api.post("/auth/login", { email, password });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      navigate("/dashboard");
-      window.location.reload();
-    } catch (err) {
-      setError(err.response?.data?.error || "Email ou senha incorrectos");
-    } finally {
-      setLoading(false);
-    }
+  try {
+    const res = await api.post("/auth/login", { email, password });
+    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+    navigate("/dashboard");
+    window.location.reload();
+  } catch (err) {
+    setError(err.response?.data?.error || err.response?.data?.message || "Email ou senha incorrectos");
+  } finally {
+    setLoading(false);
   }
-
+}
   return (
     <div style={styles.page}>
       <div style={styles.card}>

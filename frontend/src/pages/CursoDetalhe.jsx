@@ -1,183 +1,189 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../services/api";
 
 export default function CursoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [enrolled, setEnrolled] = useState(false);
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const [enrolling, setEnrolling] = useState(false);
+  const [message, setMessage] = useState("");
 
-  // Módulos mock (apresentação académica)
-  const modules = [
-    { title: "Módulo 1: Introdução", lessons: ["Aula 1: Apresentação", "Aula 2: Conceitos Básicos", "Aula 3: Configuração do Ambiente"] },
-    { title: "Módulo 2: Fundamentos", lessons: ["Aula 4: Primeiros Passos", "Aula 5: Exercícios Práticos", "Aula 6: Revisão"] },
-    { title: "Módulo 3: Avançado", lessons: ["Aula 7: Técnicas Avançadas", "Aula 8: Projeto Final", "Aula 9: Avaliação"] },
-  ];
+  const token = localStorage.getItem("token");
 
+  // Buscar curso da API
   useEffect(() => {
-    async function load() {
+    async function fetchCourse() {
       try {
-        const res = await api.get(`/courses/${id}`);
-        setCourse(res.data);
-        // Verifica se já está inscrito
-        if (user) {
-          const enrollRes = await api.get("/enrollments/me");
-          const isEnrolled = enrollRes.data.some((e) => e.courseId === id);
-          setEnrolled(isEnrolled);
+        const res = await fetch(`http://localhost:3001/api/courses/${id}`);
+        const data = await res.json();
+        console.log("Curso recebido:", data);
+
+        if (data.error || !data.id) {
+          setCourse(null);
+        } else {
+          setCourse(data);
         }
-      } catch {
-        alert("Curso não encontrado");
-        navigate("/cursos");
+      } catch (err) {
+        console.error("Erro ao buscar curso:", err);
+        setCourse(null);
       } finally {
         setLoading(false);
       }
     }
-    load();
-  }, [id, navigate, user]);
+    fetchCourse();
+  }, [id]);
 
   async function handleEnroll() {
-    if (!user) {
+    if (!token) {
       navigate("/login");
       return;
     }
+
+    setEnrolling(true);
+    setMessage("");
+
     try {
-      await api.post("/enrollments", { courseId: id });
-      setEnrolled(true);
-      alert("✅ Inscrito com sucesso!");
+      const res = await fetch("http://localhost:3001/api/enrollments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ courseId: parseInt(id) }),
+      });
+
+      const data = await res.json();
+      console.log("Resposta matrícula:", data);
+
+      if (data.error) {
+        setMessage("❌ " + data.error);
+      } else {
+        setMessage("✅ Matrícula realizada com sucesso!");
+      }
     } catch (err) {
-      alert(err.response?.data?.error || "Erro na inscrição");
+      setMessage("❌ Erro ao conectar com o servidor");
+    } finally {
+      setEnrolling(false);
     }
   }
 
-  if (loading) return <p style={{ textAlign: "center", padding: 60 }}>A carregar...</p>;
-  if (!course) return null;
+  if (loading) {
+    return <div style={{ textAlign: "center", padding: "3rem" }}>Carregando...</div>;
+  }
+
+  if (!course) {
+    return (
+      <div style={{ textAlign: "center", padding: "3rem" }}>
+        <h2>Curso não encontrado.</h2>
+        <button
+          onClick={() => navigate("/cursos")}
+          style={{
+            marginTop: "1rem",
+            padding: "0.8rem 1.5rem",
+            background: "#2563eb",
+            color: "white",
+            border: "none",
+            borderRadius: 8,
+            cursor: "pointer",
+            fontWeight: 700,
+          }}
+        >
+          Ver todos os cursos
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      {/* HEADER */}
-      <div style={styles.header}>
-        {course.image ? (
-          <img src={course.image} alt={course.title} style={styles.headerImg} />
-        ) : (
-          <div style={{ ...styles.headerImg, background: "linear-gradient(135deg, #667eea, #764ba2)" }} />
-        )}
-        <div style={styles.headerOverlay}>
-          <span style={styles.headerBadge}>{course.category}</span>
-          <h1 style={styles.headerTitle}>{course.title}</h1>
-          <p style={styles.headerDesc}>{course.description}</p>
-          <div style={styles.headerMeta}>
-            <span>📚 3 módulos</span>
-            <span>•</span>
-            <span>🎥 9 aulas</span>
-            <span>•</span>
-            <span>⏱️ 4 horas</span>
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "2rem" }}>
+      <button
+        onClick={() => navigate(-1)}
+        style={{
+          background: "transparent",
+          border: "2px solid #e2e8f0",
+          padding: "0.5rem 1rem",
+          borderRadius: 8,
+          cursor: "pointer",
+          marginBottom: "1.5rem",
+          fontWeight: 600,
+        }}
+      >
+        ← Voltar
+      </button>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem" }}>
+        <img
+          src={course.image}
+          alt={course.title}
+          style={{ width: "100%", borderRadius: 16, boxShadow: "0 10px 15px rgba(0,0,0,0.1)" }}
+        />
+
+        <div>
+          <h1 style={{ color: "#1e293b", fontSize: "2rem", fontWeight: 800, marginBottom: "0.5rem" }}>
+            {course.title}
+          </h1>
+          <p style={{ color: "#64748b", fontSize: "1.1rem", marginBottom: "1rem" }}>
+            {course.category}
+          </p>
+
+          <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+            <span style={{ background: "#eff6ff", color: "#1d4ed8", padding: "0.4rem 1rem", borderRadius: 20, fontSize: "0.85rem", fontWeight: 600 }}>
+              40 horas
+            </span>
+            <span style={{ background: "#f0fdf4", color: "#166534", padding: "0.4rem 1rem", borderRadius: 20, fontSize: "0.85rem", fontWeight: 600 }}>
+              {course.category}
+            </span>
           </div>
-          {enrolled ? (
-            <div style={styles.enrolledBadge}>✅ Já estás inscrito neste curso</div>
-          ) : (
-            <button onClick={handleEnroll} style={styles.enrollBtn}>
-              Inscrever-se Agora — Grátis
-            </button>
+
+          {message && (
+            <div style={{ padding: "1rem", borderRadius: 8, marginBottom: "1rem", fontWeight: 600, background: message.includes("sucesso") ? "#d1fae5" : "#fee2e2", color: message.includes("sucesso") ? "#065f46" : "#991b1b" }}>
+              {message}
+            </div>
           )}
+
+          {/* BOTÃO MATRICULAR - SEMPRE APARECE */}
+          <button
+            onClick={handleEnroll}
+            disabled={enrolling}
+            style={{
+              width: "100%",
+              padding: "1rem",
+              background: "linear-gradient(90deg, #2563eb 0%, #7c3aed 100%)",
+              color: "white",
+              border: "none",
+              borderRadius: 10,
+              fontSize: "1.1rem",
+              fontWeight: 700,
+              cursor: enrolling ? "not-allowed" : "pointer",
+              opacity: enrolling ? 0.7 : 1,
+            }}
+          >
+            {enrolling ? "Processando..." : token ? "Matricular-se Agora" : "Faça login para se matricular"}
+          </button>
         </div>
       </div>
 
-      {/* CONTEÚDO */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 32, marginTop: 32 }}>
-        {/* MÓDULOS */}
-        <div>
-          <h2 style={styles.sectionTitle}>Conteúdo do Curso</h2>
-          {modules.map((mod, i) => (
-            <div key={i} style={styles.moduleCard}>
-              <h3 style={styles.moduleTitle}>{mod.title}</h3>
-              <div style={styles.lessonsList}>
-                {mod.lessons.map((lesson, j) => (
-                  <div key={j} style={styles.lessonItem}>
-                    <span style={styles.lessonIcon}>▶</span>
-                    <span style={styles.lessonText}>{lesson}</span>
-                    <span style={styles.lessonTime}>15 min</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+      <div style={{ background: "white", padding: "2rem", borderRadius: 16, boxShadow: "0 4px 6px rgba(0,0,0,0.05)" }}>
+        <h3 style={{ color: "#1e293b", fontSize: "1.3rem", fontWeight: 700, marginBottom: "1rem" }}>
+          Sobre o curso
+        </h3>
+        <p style={{ color: "#475569", lineHeight: 1.7, marginBottom: "1.5rem" }}>
+          {course.description}
+        </p>
 
-        {/* SIDEBAR */}
-        <div style={styles.sidebar}>
-          <div style={styles.sidebarCard}>
-            <h3 style={styles.sidebarTitle}>👨‍🏫 Instructor</h3>
-            <div style={styles.instructor}>
-              <div style={styles.instructorAvatar}>MZ</div>
-              <div>
-                <div style={styles.instructorName}>Equipa EduMoz</div>
-                <div style={styles.instructorRole}>Especialistas em {course.category}</div>
-              </div>
-            </div>
-          </div>
-          <div style={styles.sidebarCard}>
-            <h3 style={styles.sidebarTitle}>🎯 O que vais aprender</h3>
-            <ul style={styles.benefitsList}>
-              <li>✓ Conceitos fundamentais de {course.category}</li>
-              <li>✓ Prática com projetos reais</li>
-              <li>✓ Certificado de conclusão</li>
-              <li>✓ Acesso vitalício ao conteúdo</li>
-            </ul>
-          </div>
-        </div>
+        <h3 style={{ color: "#1e293b", fontSize: "1.3rem", fontWeight: 700, marginBottom: "1rem" }}>
+          O que você vai aprender
+        </h3>
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {["Conteúdo prático", "Exercícios reais", "Certificado de conclusão"].map((topic, index) => (
+            <li key={index} style={{ padding: "0.6rem 0", paddingLeft: "1.8rem", position: "relative", color: "#475569" }}>
+              <span style={{ position: "absolute", left: 0, color: "#059669", fontWeight: "bold" }}>✓</span>
+              {topic}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
 }
-
-const styles = {
-  header: { position: "relative", borderRadius: 20, overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.12)" },
-  headerImg: { width: "100%", height: 320, objectFit: "cover" },
-  headerOverlay: {
-    position: "absolute", bottom: 0, left: 0, right: 0,
-    background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)",
-    padding: "60px 40px 40px", color: "#fff",
-  },
-  headerBadge: {
-    display: "inline-block", background: "rgba(96,165,250,0.2)", color: "#60a5fa",
-    padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, marginBottom: 12,
-  },
-  headerTitle: { fontSize: 36, fontWeight: 800, marginBottom: 12 },
-  headerDesc: { fontSize: 16, color: "#cbd5e1", maxWidth: 600, lineHeight: 1.5, marginBottom: 16 },
-  headerMeta: { display: "flex", gap: 12, fontSize: 14, color: "#94a3b8", marginBottom: 20 },
-  enrollBtn: {
-    background: "linear-gradient(90deg, #2563eb, #4f46e5)", color: "#fff", border: "none",
-    padding: "14px 32px", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer",
-  },
-  enrolledBadge: {
-    display: "inline-block", background: "#10b981", color: "#fff",
-    padding: "12px 24px", borderRadius: 12, fontWeight: 600,
-  },
-  sectionTitle: { fontSize: 22, fontWeight: 700, color: "#111827", marginBottom: 20 },
-  moduleCard: {
-    background: "#fff", borderRadius: 12, padding: 24, marginBottom: 16,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9",
-  },
-  moduleTitle: { fontSize: 16, fontWeight: 700, color: "#1e40af", marginBottom: 12 },
-  lessonsList: { display: "flex", flexDirection: "column", gap: 10 },
-  lessonItem: { display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 8, background: "#f8fafc" },
-  lessonIcon: { color: "#2563eb", fontSize: 12 },
-  lessonText: { flex: 1, fontSize: 14, color: "#374151" },
-  lessonTime: { fontSize: 12, color: "#9ca3af" },
-  sidebar: { display: "flex", flexDirection: "column", gap: 20 },
-  sidebarCard: { background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" },
-  sidebarTitle: { fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 16 },
-  instructor: { display: "flex", alignItems: "center", gap: 12 },
-  instructorAvatar: {
-    width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #2563eb, #4f46e5)",
-    color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-    fontWeight: 700, fontSize: 16,
-  },
-  instructorName: { fontWeight: 600, color: "#111827" },
-  instructorRole: { fontSize: 13, color: "#6b7280" },
-  benefitsList: { display: "flex", flexDirection: "column", gap: 10, padding: 0, listStyle: "none" },
-  benefitsListItem: { fontSize: 14, color: "#374151", display: "flex", alignItems: "center", gap: 8 },
-};
